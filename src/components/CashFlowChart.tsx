@@ -4,7 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 interface Transaction {
   date: string;
   amount: number;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'savings';
 }
 
 interface CashFlowChartProps {
@@ -15,7 +15,7 @@ interface CashFlowChartProps {
 const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, darkMode = false }) => {
   // Process transactions to create monthly cash flow data
   const processTransactions = () => {
-    const monthlyData: { [key: string]: { income: number; expenses: number; net: number; balance: number } } = {};
+    const monthlyData: { [key: string]: { income: number; expenses: number; savings: number; net: number; balance: number } } = {};
     let runningBalance = 0;
 
     // Sort transactions by date
@@ -26,15 +26,18 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, darkMode = 
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
       if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { income: 0, expenses: 0, net: 0, balance: 0 };
+        monthlyData[monthKey] = { income: 0, expenses: 0, savings: 0, net: 0, balance: 0 };
       }
 
       if (transaction.type === 'income') {
         monthlyData[monthKey].income += transaction.amount;
         runningBalance += transaction.amount;
-      } else {
+      } else if (transaction.type === 'expense') {
         monthlyData[monthKey].expenses += transaction.amount;
         runningBalance -= transaction.amount;
+      } else if (transaction.type === 'savings') {
+        monthlyData[monthKey].savings += transaction.amount;
+        // Savings don't affect running balance since they're separate
       }
 
       monthlyData[monthKey].net = monthlyData[monthKey].income - monthlyData[monthKey].expenses;

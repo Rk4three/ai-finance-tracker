@@ -4,7 +4,7 @@ interface Transaction {
   description: string;
   amount: number;
   category: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'savings';
 }
 
 interface AIResponse {
@@ -56,6 +56,10 @@ class AIService {
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
       
+      const totalSavings = this.transactions
+        .filter(t => t.type === 'savings')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
       const categoryTotals = this.transactions
         .filter(t => t.type === 'expense')
         .reduce((acc, t) => {
@@ -71,6 +75,7 @@ class AIService {
 Financial Summary:
 - Total Income: ₱${totalIncome.toLocaleString()}
 - Total Expenses: ₱${totalExpenses.toLocaleString()}
+- Total Savings: ₱${totalSavings.toLocaleString()}
 - Net Balance: ₱${(totalIncome - totalExpenses).toLocaleString()}
 - Top Spending Categories: ${topCategories.map(([cat, amt]) => `${cat} (₱${amt.toLocaleString()})`).join(', ')}
 - Total Transactions: ${this.transactions.length}
@@ -80,18 +85,22 @@ Financial Summary:
   private getLocalAnalysis(question: string): AIResponse {
     const expenses = this.transactions.filter(t => t.type === 'expense');
     const income = this.transactions.filter(t => t.type === 'income');
+    const savings = this.transactions.filter(t => t.type === 'savings');
     
     const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
     const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
+    const totalSavings = savings.reduce((sum, t) => sum + t.amount, 0);
 
     if (question.includes('total') || question.includes('how much')) {
       if (question.includes('income')) {
         return { answer: `Your total income is ₱${totalIncome.toLocaleString()}` };
       } else if (question.includes('expense') || question.includes('spend')) {
         return { answer: `Your total expenses are ₱${totalExpenses.toLocaleString()}` };
+      } else if (question.includes('saving')) {
+        return { answer: `Your total savings are ₱${totalSavings.toLocaleString()}` };
       } else {
         return { 
-          answer: `Your total income is ₱${totalIncome.toLocaleString()} and total expenses are ₱${totalExpenses.toLocaleString()}. Your net balance is ₱${(totalIncome - totalExpenses).toLocaleString()}`
+          answer: `Your total income is ₱${totalIncome.toLocaleString()}, total expenses are ₱${totalExpenses.toLocaleString()}, and total savings are ₱${totalSavings.toLocaleString()}. Your net balance is ₱${(totalIncome - totalExpenses).toLocaleString()}`
         };
       }
     } else if (question.includes('most') || question.includes('highest') || question.includes('largest')) {
@@ -133,7 +142,7 @@ Financial Summary:
       };
     } else {
       return { 
-        answer: `Here's a summary of your finances: You have ${this.transactions.length} total transactions (${income.length} income, ${expenses.length} expenses). Total income: ₱${totalIncome.toLocaleString()}, Total expenses: ₱${totalExpenses.toLocaleString()}, Net balance: ₱${(totalIncome - totalExpenses).toLocaleString()}`
+        answer: `Here's a summary of your finances: You have ${this.transactions.length} total transactions (${income.length} income, ${expenses.length} expenses, ${savings.length} savings). Total income: ₱${totalIncome.toLocaleString()}, Total expenses: ₱${totalExpenses.toLocaleString()}, Total savings: ₱${totalSavings.toLocaleString()}, Net balance: ₱${(totalIncome - totalExpenses).toLocaleString()}`
       };
     }
   }

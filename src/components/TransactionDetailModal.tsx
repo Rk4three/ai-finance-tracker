@@ -11,7 +11,7 @@ interface Transaction {
   amount: number;
   date: string;
   description: string;
-  type: "income" | "expense";
+  type: "income" | "expense" | "savings";
   icon?: React.ComponentType<{ className?: string }>;
 }
 

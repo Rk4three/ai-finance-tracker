@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import {
-  TrendingUp,
-  TrendingDown,
-  Coins,
-  PiggyBank,
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Coins, 
+  PiggyBank, 
   Search,
   Filter,
   Plus,
@@ -26,7 +26,7 @@ import StatCard from './components/StatCard';
 import AddTransactionModal from './components/AddTransactionModal';
 import FilterModal from './components/FilterModal';
 import TransactionDetailModal from './components/TransactionDetailModal';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from './components/ui/pagination';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from './components/ui/pagination';
 import { aiService } from './services/aiService';
 
 interface Transaction {
@@ -39,19 +39,35 @@ interface Transaction {
   icon?: React.ComponentType<{ className?: string }>;
 }
 
+const COLORS = [
+  '#8B5CF6', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#EC4899', '#6366F1', '#F97316', '#22C55E', '#0EA5E9', '#D946EF', '#84CC16'
+];
+
+const generateChartColors = (count: number) => {
+  if (count <= COLORS.length) {
+    return COLORS.slice(0, count);
+  }
+  const colors: string[] = [...COLORS];
+  for (let i = COLORS.length; i < count; i++) {
+    const hue = (i * 37) % 360;
+    colors.push(`hsl(${hue}, 70%, 50%)`);
+  }
+  return colors;
+};
+
 const App = () => {
   const [darkMode, setDarkMode] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState('30d');
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [aiQuery, setAiQuery] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-
-  const itemsPerPage = 6;
+  
+  const itemsPerPage = 10;
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showTransactionDetail, setShowTransactionDetail] = useState(false);
-
+  
   const [showAddModal, setShowAddModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
 
@@ -68,11 +84,11 @@ const App = () => {
     { id: 2, category: "Transportation", amount: 120, date: "2025-09-06", description: "Uber Ride", type: "expense", icon: Car },
     { id: 3, category: "Shopping", amount: 320, date: "2025-09-04", description: "Amazon Purchase", type: "expense", icon: ShoppingCart },
     { id: 4, category: "Bills & Utilities", amount: 85, date: "2025-09-03", description: "Internet Bill", type: "expense", icon: Home },
-    { id: 5, category: "Income", amount: 5000, date: "2025-09-01", description: "Monthly Salary", type: "income", icon: Coins },
+    { id: 5, category: "Salary", amount: 5000, date: "2025-09-01", description: "Monthly Salary", type: "income", icon: Coins },
     { id: 6, category: "Food & Dining", amount: 35.75, date: "2025-09-07", description: "Dinner at Restaurant", type: "expense", icon: Coffee },
     { id: 7, category: "Transportation", amount: 65, date: "2025-09-08", description: "Gas Station Fill Up", type: "expense", icon: Car },
     { id: 8, category: "Entertainment", amount: 15.99, date: "2025-09-09", description: "Netflix Subscription", type: "expense", icon: Coffee },
-    { id: 9, category: "Income", amount: 800, date: "2025-09-07", description: "Freelance Project Payment", type: "income", icon: Coins },
+    { id: 9, category: "Freelance", amount: 800, date: "2025-09-07", description: "Freelance Project Payment", type: "income", icon: Coins },
     { id: 10, category: "Health & Medical", amount: 22.50, date: "2025-09-08", description: "Pharmacy Medicine", type: "expense", icon: Home },
     { id: 11, category: "Shopping", amount: 89.99, date: "2025-09-06", description: "Mall Purchase - Uniqlo", type: "expense", icon: ShoppingCart },
     { id: 12, category: "Bills & Utilities", amount: 125.40, date: "2025-09-05", description: "Electricity Bill", type: "expense", icon: Home },
@@ -82,11 +98,12 @@ const App = () => {
   ]);
 
   const handleTransactionsLoaded = (loadedTransactions: Transaction[]) => {
-    const transactionsWithIcons = loadedTransactions.map(transaction => ({
+    const transactionsWithIcons = loadedTransactions.map((transaction, index) => ({
       ...transaction,
+      id: Date.now() + index, // More robust ID generation
       icon: getCategoryIcon(transaction.category)
     }));
-    setTransactions(transactionsWithIcons);
+    setTransactions(prev => [...prev, ...transactionsWithIcons]);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -100,7 +117,7 @@ const App = () => {
 
   const handleAiQuery = async () => {
     if (!aiQuery.trim()) return;
-
+    
     setIsAiLoading(true);
     try {
       const response = await aiService.askQuestion(aiQuery);
@@ -116,8 +133,8 @@ const App = () => {
   const handleAddTransaction = (newTransaction: Omit<Transaction, 'id'>) => {
     if (editingTransaction) {
       // Update existing transaction
-      setTransactions(prev => prev.map(t =>
-        t.id === editingTransaction.id
+      setTransactions(prev => prev.map(t => 
+        t.id === editingTransaction.id 
           ? { ...newTransaction, id: editingTransaction.id, icon: getCategoryIcon(newTransaction.category) }
           : t
       ));
@@ -126,7 +143,7 @@ const App = () => {
       // Add new transaction
       const transaction: Transaction = {
         ...newTransaction,
-        id: Math.max(0, ...transactions.map(t => t.id)) + 1,
+        id: Date.now(),
         icon: getCategoryIcon(newTransaction.category)
       };
       setTransactions(prev => [...prev, transaction]);
@@ -136,16 +153,16 @@ const App = () => {
   const handleExport = () => {
     const csvContent = [
       ['Date', 'Description', 'Amount', 'Category', 'Type'],
-      ...filteredTransactions.map(t => [
+      ...paginatedTransactions.map(t => [
         t.date,
-        t.description,
+        `"${t.description.replace(/"/g, '""')}"`, // Handle quotes in description
         t.amount.toString(),
         t.category,
         t.type
       ])
     ].map(row => row.join(',')).join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -156,82 +173,99 @@ const App = () => {
 
   const getCategoryIcon = (category: string) => {
     const categoryLower = category.toLowerCase();
-    if (categoryLower.includes('food') || categoryLower.includes('dining')) return Coffee;
+    if (categoryLower.includes('food') || categoryLower.includes('dining') || categoryLower.includes('coffee')) return Coffee;
     if (categoryLower.includes('transport') || categoryLower.includes('car') || categoryLower.includes('gas')) return Car;
     if (categoryLower.includes('shopping') || categoryLower.includes('retail')) return ShoppingCart;
     if (categoryLower.includes('bill') || categoryLower.includes('utilities') || categoryLower.includes('rent')) return Home;
-    if (categoryLower.includes('salary') || categoryLower.includes('income')) return Coins;
+    if (categoryLower.includes('salary') || categoryLower.includes('income') || categoryLower.includes('freelance')) return Coins;
     return Wallet;
   };
 
-  const periodFilteredTransactions = useMemo(() => {
-    if (selectedPeriod === 'all') {
-      return transactions;
-    }
-
-    const now = new Date();
-    let startDate: Date;
-
-    switch (selectedPeriod) {
-      case '7d':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case '30d':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case '90d':
-        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        break;
-      case '1y':
-        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    }
-
-    return transactions.filter(t => new Date(t.date) >= startDate);
-  }, [transactions, selectedPeriod]);
-
-  // Filter transactions based on period and filters
   const filteredTransactions = useMemo(() => {
-    let filtered = periodFilteredTransactions;
+    let baseTransactions = transactions;
 
-    // Apply additional filters
+    // 1. Filter by selected period
+    if (selectedPeriod !== 'all') {
+        const now = new Date();
+        let startDate: Date;
+        switch (selectedPeriod) {
+            case '7d': startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+            case '30d': startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+            case '90d': startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); break;
+            case '1y': startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000); break;
+            default: startDate = new Date(0); // Should not happen with 'all' handled
+        }
+        baseTransactions = transactions.filter(t => new Date(t.date) >= startDate);
+    }
+    
+    // 2. Apply advanced filters from modal
+    let filtered = baseTransactions;
     if (filters.type !== 'all') {
       filtered = filtered.filter(t => t.type === filters.type);
     }
-
     if (filters.categories.length > 0) {
       filtered = filtered.filter(t => filters.categories.includes(t.category));
     }
-
     if (filters.dateRange.start) {
       filtered = filtered.filter(t => t.date >= filters.dateRange.start);
     }
-
     if (filters.dateRange.end) {
       filtered = filtered.filter(t => t.date <= filters.dateRange.end);
     }
-
     if (filters.amountRange.min) {
       filtered = filtered.filter(t => t.amount >= parseFloat(filters.amountRange.min));
     }
-
     if (filters.amountRange.max) {
       filtered = filtered.filter(t => t.amount <= parseFloat(filters.amountRange.max));
     }
 
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [periodFilteredTransactions, filters]);
+  }, [transactions, selectedPeriod, filters]);
+
+  // Dashboard stats are now derived from the final filtered list
+  const dashboardData = useMemo(() => {
+    const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const balance = totalIncome - totalExpenses;
+    const savings = Math.max(0, balance * 0.2);
+
+    const expensesByCategory = filteredTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((acc, t) => {
+        acc[t.category] = (acc[t.category] || 0) + t.amount;
+        return acc;
+      }, {} as Record<string, number>);
+
+    const chartData = Object.entries(expensesByCategory).map(([name, value]) => ({ name, value }));
+    const chartColors = generateChartColors(chartData.length);
+
+    return { totalIncome, totalExpenses, balance, savings, expensesByCategory, chartData, chartColors };
+  }, [filteredTransactions]);
+
 
   // Pagination logic
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
 
+  const getPaginationItems = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, '...', totalPages];
+    }
+    if (currentPage > totalPages - 4) {
+      return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+  };
+
   // Reset to page 1 if current page exceeds total pages after filtering
   React.useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    } else if (currentPage === 0 && totalPages > 0) {
       setCurrentPage(1);
     }
   }, [currentPage, totalPages]);
@@ -241,31 +275,11 @@ const App = () => {
     aiService.setTransactions(transactions);
   }, [transactions]);
 
-  // Calculate statistics from all transactions
-  const totalIncome = periodFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-  const totalExpenses = periodFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-  const balance = totalIncome - totalExpenses;
-  const savings = Math.max(0, balance * 0.2); // 20% savings rate
-
-  // Expense categories for pie chart (from all transactions)
-  const expensesByCategory = periodFilteredTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-  const chartData = Object.entries(expensesByCategory).map(([name, value], index) => ({
-    name,
-    value,
-    color: ['#8B5CF6', '#EF4444', '#F59E0B', '#10B981', '#3B82F6'][index % 5]
-  }));
-
   // Transaction Row Component
   const TransactionRow: React.FC<{ transaction: Transaction }> = ({ transaction }) => {
     const IconComponent = transaction.icon || Wallet;
     return (
-      <div
+      <div 
         className="bg-card border border-border rounded-xl p-4 transition-all duration-200 cursor-pointer group hover:shadow-card"
         onClick={() => {
           setSelectedTransaction(transaction);
@@ -287,9 +301,10 @@ const App = () => {
             </div>
           </div>
           <div className="text-right">
-            <p className={`font-bold ${transaction.type === 'income' ? 'text-income' : 'text-expense'
-              }`}>
-              {transaction.type === 'income' ? '+' : '-'}₱{transaction.amount.toLocaleString()}
+            <p className={`font-bold ${
+              transaction.type === 'income' ? 'text-income' : 'text-expense'
+            }`}>
+              {transaction.type === 'income' ? '+' : '-'}₱{transaction.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
           </div>
@@ -298,10 +313,23 @@ const App = () => {
     );
   };
 
+  const CustomPieTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      return (
+        <div className="bg-card border border-border rounded-lg p-2 shadow-elevated">
+          <p className="font-medium text-foreground">{`${data.name}: ₱${data.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
 
   return (
-    <div className={`min-h-screen transition-all duration-300 ${darkMode ? 'dark bg-background' : 'bg-background'
-      }`}>
+    <div className={`min-h-screen transition-all duration-300 ${
+      darkMode ? 'dark bg-background' : 'bg-background'
+    }`}>
       {/* Header */}
       <header className="bg-card/50 backdrop-blur-lg border-b border-border sticky top-0 z-50 shadow-card">
         <div className="w-full px-6 py-4">
@@ -319,30 +347,31 @@ const App = () => {
                 </p>
               </div>
             </div>
-
+            
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 bg-muted rounded-lg p-1">
                 {['7d', '30d', '90d', '1y', 'all'].map((period) => (
                   <button
                     key={period}
                     onClick={() => setSelectedPeriod(period)}
-                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${selectedPeriod === period
+                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                      selectedPeriod === period
                         ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
-                      }`}
+                    }`}
                   >
-                    {period === 'all' ? 'All' : period}
+                    {period === 'all' ? 'All' : period.charAt(0).toUpperCase() + period.slice(1)}
                   </button>
                 ))}
               </div>
-
-              <button
+              
+              <button 
                 onClick={() => setDarkMode(!darkMode)}
                 className="p-2 rounded-lg bg-muted text-muted-foreground hover:scale-105 transition-transform"
               >
                 {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
-
+              
             </div>
           </div>
         </div>
@@ -372,7 +401,7 @@ const App = () => {
                 onKeyPress={(e) => e.key === 'Enter' && handleAiQuery()}
                 disabled={isAiLoading}
               />
-              <button
+              <button 
                 onClick={handleAiQuery}
                 disabled={isAiLoading || !aiQuery.trim()}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors disabled:opacity-50"
@@ -396,101 +425,96 @@ const App = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Current Balance"
-            value={balance}
+            value={dashboardData.balance}
             change="+12.5%"
             changeType="positive"
             icon={Coins}
             variant="balance"
-            trend={[{ value: 1000 }, { value: 1100 }, { value: 1050 }, { value: 1200 }, { value: balance }]}
+            trend={[{value: 1000}, {value: 1100}, {value: 1050}, {value: 1200}, {value: dashboardData.balance}]}
           />
           <StatCard
             title="Total Income"
-            value={totalIncome}
+            value={dashboardData.totalIncome}
             change="+8.2%"
             changeType="positive"
             icon={TrendingUp}
             variant="income"
-            trend={[{ value: 3200 }, { value: 3300 }, { value: 3400 }, { value: 3450 }, { value: totalIncome }]}
+            trend={[{value: 3200}, {value: 3300}, {value: 3400}, {value: 3450}, {value: dashboardData.totalIncome}]}
           />
           <StatCard
             title="Total Expenses"
-            value={totalExpenses}
+            value={dashboardData.totalExpenses}
             change="-3.1%"
             changeType="positive"
             icon={TrendingDown}
             variant="expense"
-            trend={[{ value: 2400 }, { value: 2350 }, { value: 2300 }, { value: 2280 }, { value: totalExpenses }]}
+            trend={[{value: 2400}, {value: 2350}, {value: 2300}, {value: 2280}, {value: dashboardData.totalExpenses}]}
           />
           <StatCard
             title="Estimated Savings"
-            value={savings}
+            value={dashboardData.savings}
             change="+15.3%"
             changeType="positive"
             icon={PiggyBank}
             variant="default"
-            trend={[{ value: 750 }, { value: 780 }, { value: 820 }, { value: 850 }, { value: savings }]}
+            trend={[{value: 750}, {value: 780}, {value: 820}, {value: 850}, {value: dashboardData.savings}]}
           />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Cash Flow Chart */}
-          <div className="xl:col-span-2">
-            <CashFlowChart transactions={periodFilteredTransactions} darkMode={darkMode} />
-          </div>
+        <div className="xl:col-span-2">
+          <CashFlowChart transactions={filteredTransactions} darkMode={darkMode} />
+        </div>
 
           {/* Expense Categories Pie Chart */}
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-card">
-            <h2 className="text-xl font-bold mb-6 text-foreground">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-card flex flex-col">
+            <h2 className="text-xl font-bold mb-6 text-foreground flex-shrink-0">
               Expense Categories
             </h2>
-            {chartData.length > 0 ? (
+            {dashboardData.chartData.length > 0 ? (
               <>
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: darkMode ? 'hsl(var(--card))' : 'hsl(var(--card))',
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: 'var(--shadow-elevated)'
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-4 space-y-2">
-                  {chartData.slice(0, 4).map((item, index) => (
+                <div className="flex-grow h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                        data={dashboardData.chartData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius="80%"
+                        dataKey="value"
+                        stroke="none"
+                        >
+                        {dashboardData.chartData.map((_entry, index) => (
+                            <Cell key={`cell-${index}`} fill={dashboardData.chartColors[index % dashboardData.chartColors.length]} />
+                        ))}
+                        </Pie>
+                        <Tooltip content={<CustomPieTooltip />} />
+                    </PieChart>
+                    </ResponsiveContainer>
+                </div>
+                <div className="mt-4 space-y-2 flex-shrink-0 max-h-48 overflow-y-auto">
+                  {dashboardData.chartData.map((item, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: item.color }}
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: dashboardData.chartColors[index % dashboardData.chartColors.length] }}
                         ></div>
                         <span className="text-sm text-muted-foreground">
                           {item.name}
                         </span>
                       </div>
                       <span className="text-sm font-medium text-foreground">
-                        ₱{item.value.toLocaleString()}
+                        ₱{item.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   ))}
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center h-64 text-muted-foreground">
-                <p>No expense data available</p>
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p>No expense data for this period.</p>
               </div>
             )}
           </div>
@@ -503,7 +527,7 @@ const App = () => {
               Recent Transactions
             </h2>
             <div className="flex items-center space-x-3">
-              <button
+              <button 
                 onClick={() => setShowFilterModal(true)}
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-muted text-muted-foreground hover:scale-105 transition-transform"
               >
@@ -513,14 +537,14 @@ const App = () => {
                   <span className="w-2 h-2 bg-primary rounded-full" />
                 )}
               </button>
-              <button
+              <button 
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center space-x-2 px-4 py-2 bg-gradient-primary text-white rounded-lg hover:scale-105 transition-transform shadow-glow"
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-sm">Add Transaction</span>
               </button>
-              <button
+              <button 
                 onClick={handleExport}
                 className="flex items-center space-x-2 px-4 py-2 bg-success text-success-foreground rounded-lg hover:scale-105 transition-transform"
               >
@@ -540,34 +564,38 @@ const App = () => {
               </div>
             )}
           </div>
-
+          
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-6 flex justify-center">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious
+                    <PaginationPrevious 
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                       className={currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                     />
                   </PaginationItem>
-
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(page)}
-                        isActive={currentPage === page}
-                        className="cursor-pointer"
-                      >
-                        {page}
-                      </PaginationLink>
+                  
+                  {getPaginationItems().map((item, index) => (
+                    <PaginationItem key={index}>
+                      {typeof item === 'number' ? (
+                        <PaginationLink
+                          onClick={() => setCurrentPage(item)}
+                          isActive={currentPage === item}
+                          className="cursor-pointer"
+                        >
+                          {item}
+                        </PaginationLink>
+                      ) : (
+                        <PaginationEllipsis />
+                      )}
                     </PaginationItem>
                   ))}
-
+                  
                   <PaginationItem>
-                    <PaginationNext
+                    <PaginationNext 
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
                       className={currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -589,7 +617,7 @@ const App = () => {
           onAdd={handleAddTransaction}
           editingTransaction={editingTransaction}
         />
-
+        
         <FilterModal
           isOpen={showFilterModal}
           onClose={() => setShowFilterModal(false)}

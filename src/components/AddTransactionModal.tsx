@@ -7,7 +7,7 @@ interface Transaction {
   amount: number;
   date: string;
   description: string;
-  type: "income" | "expense";
+  type: "income" | "expense" | "savings";
 }
 
 interface AddTransactionModalProps {
@@ -22,7 +22,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
     description: '',
     amount: '',
     category: '',
-    type: 'expense' as 'income' | 'expense',
+    type: 'expense' as 'income' | 'expense' | 'savings',
     date: new Date().toISOString().split('T')[0]
   });
 
@@ -68,7 +68,24 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
     'Other'
   ];
 
-  const categories = formData.type === 'income' ? incomeCategories : expenseCategories;
+  const savingsCategories = [
+    'Emergency Fund',
+    'Retirement',
+    'Investment',
+    'Goals',
+    'Other Savings'
+  ];
+
+  const getCategories = () => {
+    switch (formData.type) {
+      case 'income': return incomeCategories;
+      case 'expense': return expenseCategories;
+      case 'savings': return savingsCategories;
+      default: return expenseCategories;
+    }
+  };
+
+  const categories = getCategories();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,8 +195,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
                   name="type"
                   value="expense"
                   checked={formData.type === 'expense'}
-              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'income' | 'expense', category: '' }))}
-              className="mr-2"
+                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'income' | 'expense' | 'savings', category: '' }))}
+                  className="mr-2"
                 />
                 <span className="text-foreground">Expense</span>
               </label>
@@ -189,10 +206,21 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
                   name="type"
                   value="income"
                   checked={formData.type === 'income'}
-                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'income' | 'expense', category: '' }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'income' | 'expense' | 'savings', category: '' }))}
                   className="mr-2"
                 />
                 <span className="text-foreground">Income</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="type"
+                  value="savings"
+                  checked={formData.type === 'savings'}
+                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'income' | 'expense' | 'savings', category: '' }))}
+                  className="mr-2"
+                />
+                <span className="text-foreground">Savings</span>
               </label>
             </div>
           </div>
