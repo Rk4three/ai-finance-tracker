@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Filter, Calendar, DollarSign, Tag } from 'lucide-react';
 
 interface FilterOptions {
@@ -24,16 +24,19 @@ interface FilterModalProps {
 const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, currentFilters }) => {
   const [filters, setFilters] = useState<FilterOptions>(currentFilters);
 
-  const categories = [
-    'Food & Dining',
-    'Transportation',
-    'Shopping',
-    'Bills & Utilities',
-    'Entertainment',
-    'Health & Medical',
-    'Income',
-    'Other'
-  ];
+  const incomeCategories = ['Income', 'Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Refund'];
+  const expenseCategories = ['Food & Dining', 'Transportation', 'Shopping', 'Bills & Utilities', 'Entertainment', 'Health & Medical', 'Other'];
+
+  const categories = useMemo(() => {
+    if (filters.type === 'income') {
+      return incomeCategories;
+    }
+    if (filters.type === 'expense') {
+      return expenseCategories;
+    }
+    return [...incomeCategories, ...expenseCategories];
+  }, [filters.type]);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +80,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, cur
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Date Range */}
           <div>
@@ -124,7 +127,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, cur
                     name="type"
                     value={type}
                     checked={filters.type === type}
-                    onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value as any }))}
+                    onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value as any, categories: [] }))}
                     className="mr-2"
                   />
                   <span className="text-foreground capitalize">{type}</span>

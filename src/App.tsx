@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Coins, 
-  PiggyBank, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Coins,
+  PiggyBank,
   Search,
   Filter,
   Plus,
@@ -47,11 +47,11 @@ const App = () => {
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  
+
   const itemsPerPage = 6;
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showTransactionDetail, setShowTransactionDetail] = useState(false);
-  
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
 
@@ -100,7 +100,7 @@ const App = () => {
 
   const handleAiQuery = async () => {
     if (!aiQuery.trim()) return;
-    
+
     setIsAiLoading(true);
     try {
       const response = await aiService.askQuestion(aiQuery);
@@ -116,8 +116,8 @@ const App = () => {
   const handleAddTransaction = (newTransaction: Omit<Transaction, 'id'>) => {
     if (editingTransaction) {
       // Update existing transaction
-      setTransactions(prev => prev.map(t => 
-        t.id === editingTransaction.id 
+      setTransactions(prev => prev.map(t =>
+        t.id === editingTransaction.id
           ? { ...newTransaction, id: editingTransaction.id, icon: getCategoryIcon(newTransaction.category) }
           : t
       ));
@@ -164,14 +164,14 @@ const App = () => {
     return Wallet;
   };
 
-  // Filter transactions based on period and filters
-  const filteredTransactions = useMemo(() => {
-    let filtered = [...transactions];
+  const periodFilteredTransactions = useMemo(() => {
+    if (selectedPeriod === 'all') {
+      return transactions;
+    }
 
-    // Period filtering
     const now = new Date();
     let startDate: Date;
-    
+
     switch (selectedPeriod) {
       case '7d':
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -189,7 +189,12 @@ const App = () => {
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
 
-    filtered = filtered.filter(t => new Date(t.date) >= startDate);
+    return transactions.filter(t => new Date(t.date) >= startDate);
+  }, [transactions, selectedPeriod]);
+
+  // Filter transactions based on period and filters
+  const filteredTransactions = useMemo(() => {
+    let filtered = periodFilteredTransactions;
 
     // Apply additional filters
     if (filters.type !== 'all') {
@@ -217,7 +222,7 @@ const App = () => {
     }
 
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, selectedPeriod, filters]);
+  }, [periodFilteredTransactions, filters]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
@@ -237,13 +242,13 @@ const App = () => {
   }, [transactions]);
 
   // Calculate statistics from all transactions
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+  const totalIncome = periodFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+  const totalExpenses = periodFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
   const balance = totalIncome - totalExpenses;
   const savings = Math.max(0, balance * 0.2); // 20% savings rate
 
   // Expense categories for pie chart (from all transactions)
-  const expensesByCategory = transactions
+  const expensesByCategory = periodFilteredTransactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
@@ -260,7 +265,7 @@ const App = () => {
   const TransactionRow: React.FC<{ transaction: Transaction }> = ({ transaction }) => {
     const IconComponent = transaction.icon || Wallet;
     return (
-      <div 
+      <div
         className="bg-card border border-border rounded-xl p-4 transition-all duration-200 cursor-pointer group hover:shadow-card"
         onClick={() => {
           setSelectedTransaction(transaction);
@@ -282,9 +287,8 @@ const App = () => {
             </div>
           </div>
           <div className="text-right">
-            <p className={`font-bold ${
-              transaction.type === 'income' ? 'text-income' : 'text-expense'
-            }`}>
+            <p className={`font-bold ${transaction.type === 'income' ? 'text-income' : 'text-expense'
+              }`}>
               {transaction.type === 'income' ? '+' : '-'}₱{transaction.amount.toLocaleString()}
             </p>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
@@ -296,9 +300,8 @@ const App = () => {
 
 
   return (
-    <div className={`min-h-screen transition-all duration-300 ${
-      darkMode ? 'dark bg-background' : 'bg-background'
-    }`}>
+    <div className={`min-h-screen transition-all duration-300 ${darkMode ? 'dark bg-background' : 'bg-background'
+      }`}>
       {/* Header */}
       <header className="bg-card/50 backdrop-blur-lg border-b border-border sticky top-0 z-50 shadow-card">
         <div className="w-full px-6 py-4">
@@ -316,31 +319,30 @@ const App = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 bg-muted rounded-lg p-1">
-                {['7d', '30d', '90d', '1y'].map((period) => (
+                {['7d', '30d', '90d', '1y', 'all'].map((period) => (
                   <button
                     key={period}
                     onClick={() => setSelectedPeriod(period)}
-                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                      selectedPeriod === period
+                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${selectedPeriod === period
                         ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                      }`}
                   >
-                    {period}
+                    {period === 'all' ? 'All' : period}
                   </button>
                 ))}
               </div>
-              
-              <button 
+
+              <button
                 onClick={() => setDarkMode(!darkMode)}
                 className="p-2 rounded-lg bg-muted text-muted-foreground hover:scale-105 transition-transform"
               >
                 {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
-              
+
             </div>
           </div>
         </div>
@@ -370,7 +372,7 @@ const App = () => {
                 onKeyPress={(e) => e.key === 'Enter' && handleAiQuery()}
                 disabled={isAiLoading}
               />
-              <button 
+              <button
                 onClick={handleAiQuery}
                 disabled={isAiLoading || !aiQuery.trim()}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors disabled:opacity-50"
@@ -399,7 +401,7 @@ const App = () => {
             changeType="positive"
             icon={Coins}
             variant="balance"
-            trend={[{value: 1000}, {value: 1100}, {value: 1050}, {value: 1200}, {value: balance}]}
+            trend={[{ value: 1000 }, { value: 1100 }, { value: 1050 }, { value: 1200 }, { value: balance }]}
           />
           <StatCard
             title="Total Income"
@@ -408,7 +410,7 @@ const App = () => {
             changeType="positive"
             icon={TrendingUp}
             variant="income"
-            trend={[{value: 3200}, {value: 3300}, {value: 3400}, {value: 3450}, {value: totalIncome}]}
+            trend={[{ value: 3200 }, { value: 3300 }, { value: 3400 }, { value: 3450 }, { value: totalIncome }]}
           />
           <StatCard
             title="Total Expenses"
@@ -417,7 +419,7 @@ const App = () => {
             changeType="positive"
             icon={TrendingDown}
             variant="expense"
-            trend={[{value: 2400}, {value: 2350}, {value: 2300}, {value: 2280}, {value: totalExpenses}]}
+            trend={[{ value: 2400 }, { value: 2350 }, { value: 2300 }, { value: 2280 }, { value: totalExpenses }]}
           />
           <StatCard
             title="Estimated Savings"
@@ -426,15 +428,15 @@ const App = () => {
             changeType="positive"
             icon={PiggyBank}
             variant="default"
-            trend={[{value: 750}, {value: 780}, {value: 820}, {value: 850}, {value: savings}]}
+            trend={[{ value: 750 }, { value: 780 }, { value: 820 }, { value: 850 }, { value: savings }]}
           />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Cash Flow Chart */}
-        <div className="xl:col-span-2">
-          <CashFlowChart transactions={transactions} darkMode={darkMode} />
-        </div>
+          <div className="xl:col-span-2">
+            <CashFlowChart transactions={periodFilteredTransactions} darkMode={darkMode} />
+          </div>
 
           {/* Expense Categories Pie Chart */}
           <div className="bg-card border border-border rounded-2xl p-6 shadow-card">
@@ -457,8 +459,8 @@ const App = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
+                    <Tooltip
+                      contentStyle={{
                         backgroundColor: darkMode ? 'hsl(var(--card))' : 'hsl(var(--card))',
                         border: 'none',
                         borderRadius: '12px',
@@ -471,8 +473,8 @@ const App = () => {
                   {chartData.slice(0, 4).map((item, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
+                        <div
+                          className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: item.color }}
                         ></div>
                         <span className="text-sm text-muted-foreground">
@@ -501,7 +503,7 @@ const App = () => {
               Recent Transactions
             </h2>
             <div className="flex items-center space-x-3">
-              <button 
+              <button
                 onClick={() => setShowFilterModal(true)}
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-muted text-muted-foreground hover:scale-105 transition-transform"
               >
@@ -511,14 +513,14 @@ const App = () => {
                   <span className="w-2 h-2 bg-primary rounded-full" />
                 )}
               </button>
-              <button 
+              <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center space-x-2 px-4 py-2 bg-gradient-primary text-white rounded-lg hover:scale-105 transition-transform shadow-glow"
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-sm">Add Transaction</span>
               </button>
-              <button 
+              <button
                 onClick={handleExport}
                 className="flex items-center space-x-2 px-4 py-2 bg-success text-success-foreground rounded-lg hover:scale-105 transition-transform"
               >
@@ -538,20 +540,20 @@ const App = () => {
               </div>
             )}
           </div>
-          
+
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-6 flex justify-center">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious 
+                    <PaginationPrevious
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                       className={currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                     />
                   </PaginationItem>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <PaginationItem key={page}>
                       <PaginationLink
@@ -563,9 +565,9 @@ const App = () => {
                       </PaginationLink>
                     </PaginationItem>
                   ))}
-                  
+
                   <PaginationItem>
-                    <PaginationNext 
+                    <PaginationNext
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
                       className={currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -587,7 +589,7 @@ const App = () => {
           onAdd={handleAddTransaction}
           editingTransaction={editingTransaction}
         />
-        
+
         <FilterModal
           isOpen={showFilterModal}
           onClose={() => setShowFilterModal(false)}
