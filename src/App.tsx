@@ -426,38 +426,26 @@ const App = () => {
           <StatCard
             title="Current Balance"
             value={dashboardData.balance}
-            change="+12.5%"
-            changeType="positive"
             icon={Coins}
             variant="balance"
-            trend={[{value: 1000}, {value: 1100}, {value: 1050}, {value: 1200}, {value: dashboardData.balance}]}
           />
           <StatCard
             title="Total Income"
             value={dashboardData.totalIncome}
-            change="+8.2%"
-            changeType="positive"
             icon={TrendingUp}
             variant="income"
-            trend={[{value: 3200}, {value: 3300}, {value: 3400}, {value: 3450}, {value: dashboardData.totalIncome}]}
           />
           <StatCard
             title="Total Expenses"
             value={dashboardData.totalExpenses}
-            change="-3.1%"
-            changeType="positive"
             icon={TrendingDown}
             variant="expense"
-            trend={[{value: 2400}, {value: 2350}, {value: 2300}, {value: 2280}, {value: dashboardData.totalExpenses}]}
           />
           <StatCard
             title="Estimated Savings"
             value={dashboardData.savings}
-            change="+15.3%"
-            changeType="positive"
             icon={PiggyBank}
             variant="default"
-            trend={[{value: 750}, {value: 780}, {value: 820}, {value: 850}, {value: dashboardData.savings}]}
           />
         </div>
 
@@ -642,3 +630,4 @@ const App = () => {
 };
 
 export default App;
+
