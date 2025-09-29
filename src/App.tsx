@@ -22,12 +22,10 @@ import {
 import FileUpload from './components/FileUpload';
 import CashFlowChart from './components/CashFlowChart';
 import StatCard from './components/StatCard';
-
 import AddTransactionModal from './components/AddTransactionModal';
 import FilterModal from './components/FilterModal';
 import TransactionDetailModal from './components/TransactionDetailModal';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from './components/ui/pagination';
-import { aiService } from './services/aiService';
 
 interface Transaction {
   id: number;
@@ -38,6 +36,37 @@ interface Transaction {
   type: "income" | "expense";
   icon?: React.ComponentType<{ className?: string }>;
 }
+
+// --- AI Service Integration ---
+// This object handles communication with your Deno backend AI service.
+
+// IMPORTANT: Replace this URL with the actual URL of your deployed Deno Edge Function.
+// For local testing, it will likely be 'http://localhost:8000'.
+const AI_API_URL = 'https://qliltpkoqtyaeszwzamu.supabase.co/functions/v1/chat-with-ai'; 
+
+const aiService = {
+  askQuestion: async (question: string, transactions: Transaction[]): Promise<{ answer: string }> => {
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        question,
+        transactions,
+        currentDate: new Date().toISOString(), // Pass the current date for context
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Network response was not ok.' }));
+      throw new Error(errorData.error || 'Failed to fetch AI response.');
+    }
+
+    return response.json();
+  }
+};
+// --- End of AI Service Integration ---
 
 const COLORS = [
   '#8B5CF6', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#EC4899', '#6366F1', '#F97316', '#22C55E', '#0EA5E9', '#D946EF', '#84CC16'
@@ -115,15 +144,19 @@ const App = () => {
     setTransactions(prev => prev.filter(t => t.id !== transactionId));
   };
 
+  // --- MODIFIED: This function now calls the AI service ---
   const handleAiQuery = async () => {
     if (!aiQuery.trim()) return;
     
     setIsAiLoading(true);
+    setAiResponse(''); // Clear previous response
     try {
-      const response = await aiService.askQuestion(aiQuery);
+      // Pass the current query and the full list of transactions to the service
+      const response = await aiService.askQuestion(aiQuery, transactions);
       setAiResponse(response.answer);
     } catch (error) {
-      setAiResponse('Sorry, I encountered an error while processing your question. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      setAiResponse(`Sorry, I encountered an error: ${errorMessage} Please try again.`);
     } finally {
       setIsAiLoading(false);
     }
@@ -270,10 +303,11 @@ const App = () => {
     }
   }, [currentPage, totalPages]);
 
-  // Update AI service when transactions change
-  React.useEffect(() => {
+  // --- REMOVED: This useEffect is no longer needed ---
+  /* React.useEffect(() => {
     aiService.setTransactions(transactions);
   }, [transactions]);
+  */
 
   // Transaction Row Component
   const TransactionRow: React.FC<{ transaction: Transaction }> = ({ transaction }) => {
@@ -630,4 +664,3 @@ const App = () => {
 };
 
 export default App;
-

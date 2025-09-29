@@ -1,10 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// new cors headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// transaction interface
 interface Transaction {
   id: number;
   date: string;
@@ -46,7 +48,7 @@ serve(async (req: Request) => {
     if (!isFinanceRelated) {
       return new Response(
         JSON.stringify({ 
-          answer: "I'm a financial assistant focused on helping you understand your spending and income patterns. Please ask questions related to your transactions, expenses, income, or financial habits."
+          answer: "I can only answer questions about your finances. Please ask something related to your transactions, spending, or income."
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -63,40 +65,9 @@ serve(async (req: Request) => {
 
     const now = new Date(currentDate || new Date().toISOString());
 
-    // Build financial context using all transactions
-    const totalIncome = transactions
-      .filter((t: Transaction) => t.type === 'income')
-      .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-    
-    const totalExpenses = transactions
-      .filter((t: Transaction) => t.type === 'expense')
-      .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-    
-    const categoryTotals = transactions
-      .filter((t: Transaction) => t.type === 'expense')
-      .reduce((acc: Record<string, number>, t: Transaction) => {
-        acc[t.category] = (acc[t.category] || 0) + t.amount;
-        return acc;
-      }, {});
+    // --- Start of New Gemini API Integration ---
 
-    const topCategories = Object.entries(categoryTotals)
-      .sort(([,a], [,b]) => (b as number) - (a as number))
-      .slice(0, 3);
-
-    const context = `
-Financial Summary (Overall):
-- Total Income: ₱${totalIncome.toLocaleString()}
-- Total Expenses: ₱${totalExpenses.toLocaleString()}
-- Net Balance: ₱${(totalIncome - totalExpenses).toLocaleString()}
-- Top Spending Categories: ${topCategories.map(([cat, amt]) => `${cat} (₱${(amt as number).toLocaleString()})`).join(', ')}
-- Total Transactions: ${transactions.length}
-- Current Date: ${now.toISOString().split('T')[0]}
-
-Please answer the user's question based on the provided transactions. The user may ask about specific time ranges, categories, or other details. Analyze the full transaction list to provide the most accurate answer, even if the question implies a filter that is not explicitly provided.
-`;
-
-    // @ts-ignore: Deno global is available at runtime in Deno Deploy/Supabase Edge Functions
-        const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
       console.error('GEMINI_API_KEY not found in environment');
       return new Response(
@@ -119,24 +90,34 @@ Please answer the user's question based on the provided transactions. The user m
           {
             parts: [
               {
-                text: `You are a financial advisor AI assistant. Analyze the user's transaction data and provide helpful insights. Use Philippine Peso (₱) currency format. Keep responses concise and specific.
+                text: `You are a helpful and precise financial assistant. Your answers are based *only* on the transaction data provided by the user.
 
-${context}
+**Your Task:**
+1.  **Analyze the User's Question:** Understand what financial information the user is asking for. Pay close attention to dates, date ranges (like "last month" or "in August"), transaction categories, and amounts.
+2.  **Filter Transactions:** Based on the user's question, filter the transactions to match their criteria. Be very careful with date filtering. For example, if the user asks about "August," only include transactions from August of any year present in the data.
+3.  **Perform Calculations:** Calculate totals, averages, or find specific transactions as needed to answer the question.
+4.  **Provide a Clear Answer:** State the answer clearly and concisely. Always mention the time period your answer covers.
+5.  **Offer Deeper Insights (Optional):** If you notice a trend, an unusually high expense, or a significant change in spending habits, you can point it out to the user. For example: "You spent ₱5,000 on dining out this month. That's 20% higher than last month."
 
-Question: ${question}
+**Important Rules:**
+* **Data is Your World:** Do not use any information outside of the provided transaction list. If you cannot answer the question with the given data, say so.
+* **Currency:** All amounts are in Philippine Pesos (₱).
+* **Current Date:** Today's date is ${now.toISOString().split('T')[0]}.
 
-Transaction Data:
-${JSON.stringify(transactions, null, 2)}
+**User's Question:** "${question}"
+
+**Transaction Data (JSON):**
+${JSON.stringify(transactions)}
 `
               }
             ]
           }
         ],
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.5,
           topK: 1,
           topP: 1,
-          maxOutputTokens: 200,
+          maxOutputTokens: 300,
         },
         safetySettings: [
           {
