@@ -332,29 +332,30 @@ const App = () => {
     }`}>
       {/* Header */}
       <header className="bg-card/50 backdrop-blur-lg border-b border-border sticky top-0 z-50 shadow-card">
-        <div className="w-full px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        {/* Mobile responsive header */}
+        <div className="w-full px-4 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
               <div className="bg-gradient-primary p-2 rounded-xl shadow-glow">
-                <Wallet className="w-8 h-8 text-white" />
+                <Wallet className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">
                   Smart Finance
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="hidden sm:block text-sm text-muted-foreground">
                   AI-Powered Personal Finance Dashboard
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-muted rounded-lg p-1">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <div className="flex items-center space-x-1 sm:space-x-2 bg-muted rounded-lg p-1">
                 {['7d', '30d', '90d', '1y', 'all'].map((period) => (
                   <button
                     key={period}
                     onClick={() => setSelectedPeriod(period)}
-                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-colors ${
                       selectedPeriod === period
                         ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
@@ -377,7 +378,7 @@ const App = () => {
         </div>
       </header>
 
-      <main className="w-full px-6 lg:px-12 py-8 space-y-8">
+      <main className="w-full px-4 sm:px-6 lg:px-12 py-8 space-y-8">
         {/* File Upload Section */}
         <FileUpload onTransactionsLoaded={handleTransactionsLoaded} darkMode={darkMode} />
 
@@ -389,22 +390,22 @@ const App = () => {
               <div className="bg-white/20 p-2 rounded-lg">
                 <Brain className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-white">AI Financial Assistant</h3>
+              <h3 className="text-lg md:text-xl font-bold text-white">AI Financial Assistant</h3>
             </div>
             <div className="relative mb-4">
               <input
                 type="text"
                 value={aiQuery}
                 onChange={(e) => setAiQuery(e.target.value)}
-                placeholder="Ask me anything about your finances... 'How much did I spend on food this month?'"
-                className="w-full p-4 pr-12 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
+                placeholder="Ask me anything about your finances..."
+                className="w-full p-3 sm:p-4 pr-10 sm:pr-12 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
                 onKeyPress={(e) => e.key === 'Enter' && handleAiQuery()}
                 disabled={isAiLoading}
               />
               <button 
                 onClick={handleAiQuery}
                 disabled={isAiLoading || !aiQuery.trim()}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors disabled:opacity-50"
+                className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors disabled:opacity-50"
               >
                 {isAiLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -421,8 +422,8 @@ const App = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Stats Grid - Now responsive */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Current Balance"
             value={dashboardData.balance}
@@ -449,13 +450,12 @@ const App = () => {
           />
         </div>
 
+        {/* Charts Grid - Now responsive */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Cash Flow Chart */}
-        <div className="xl:col-span-2">
-          <CashFlowChart transactions={filteredTransactions} darkMode={darkMode} />
-        </div>
+          <div className="xl:col-span-2">
+            <CashFlowChart transactions={filteredTransactions} darkMode={darkMode} />
+          </div>
 
-          {/* Expense Categories Pie Chart */}
           <div className="bg-card border border-border rounded-2xl p-6 shadow-card flex flex-col">
             <h2 className="text-xl font-bold mb-6 text-foreground flex-shrink-0">
               Expense Categories
@@ -510,34 +510,34 @@ const App = () => {
 
         {/* Recent Transactions */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-card">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
             <h2 className="text-xl font-bold text-foreground">
               Recent Transactions
             </h2>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3 w-full md:w-auto">
               <button 
                 onClick={() => setShowFilterModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-muted text-muted-foreground hover:scale-105 transition-transform"
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors flex-1 md:flex-none justify-center"
               >
                 <Filter className="w-4 h-4" />
-                <span className="text-sm">Filter</span>
+                <span className="hidden sm:inline text-sm">Filter</span>
                 {(filters.categories.length > 0 || filters.type !== 'all' || filters.dateRange.start || filters.amountRange.min) && (
                   <span className="w-2 h-2 bg-primary rounded-full" />
                 )}
               </button>
               <button 
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-gradient-primary text-white rounded-lg hover:scale-105 transition-transform shadow-glow"
+                className="flex items-center space-x-2 px-3 py-2 bg-gradient-primary text-white rounded-lg hover:scale-105 transition-transform shadow-glow flex-1 md:flex-none justify-center"
               >
                 <Plus className="w-4 h-4" />
-                <span className="text-sm">Add Transaction</span>
+                <span className="hidden sm:inline text-sm">Add New</span>
               </button>
               <button 
                 onClick={handleExport}
-                className="flex items-center space-x-2 px-4 py-2 bg-success text-success-foreground rounded-lg hover:scale-105 transition-transform"
+                className="flex items-center space-x-2 px-3 py-2 bg-success text-success-foreground rounded-lg hover:scale-105 transition-transform flex-1 md:flex-none justify-center"
               >
                 <Download className="w-4 h-4" />
-                <span className="text-sm">Export</span>
+                <span className="hidden sm:inline text-sm">Export</span>
               </button>
             </div>
           </div>
