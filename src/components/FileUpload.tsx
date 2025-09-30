@@ -9,7 +9,7 @@ interface Transaction {
   description: string;
   amount: number;
   category: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'savings';
 }
 
 interface FileUploadProps {
@@ -115,11 +115,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onTransactionsLoaded, darkMode 
       }
 
       // Determine transaction type
-      let type: 'income' | 'expense' = 'expense';
+      let type: 'income' | 'expense' | 'savings' = 'expense';
       if (rawType) {
         const typeStr = rawType.toString().toLowerCase();
         if (typeStr.includes('income') || typeStr.includes('credit') || typeStr.includes('deposit')) {
           type = 'income';
+        } else if (typeStr.includes('savings')) {
+          type = 'savings';
         }
       } else if (rawAmount && parseFloat(rawAmount.toString().replace(/[₱$,]/g, '')) > 0) {
         // If no type specified, assume positive amounts are income
@@ -191,6 +193,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onTransactionsLoaded, darkMode 
           { id: 1, date: '2025-09-01', description: 'Sample Income', amount: 2500, category: 'Salary', type: 'income' },
           { id: 2, date: '2025-09-02', description: 'Grocery Shopping', amount: 150, category: 'Food', type: 'expense' },
           { id: 3, date: '2025-09-03', description: 'Gas Station', amount: 60, category: 'Transportation', type: 'expense' },
+          { id: 4, date: '2025-09-04', description: 'Savings Deposit', amount: 500, category: 'Emergency Fund', type: 'savings' },
         ];
         onTransactionsLoaded(sampleTransactions);
         setUploadStatus('success');
