@@ -67,7 +67,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               Amount
             </div>
             <p className={`text-2xl font-bold ${
-              transaction.type === 'income' ? 'text-income' : 'text-expense'
+              transaction.type === 'income' ? 'text-income' : transaction.type === 'expense' ? 'text-expense' : 'text-foreground'
             }`}>
               {transaction.type === 'income' ? '+' : '-'}₱{transaction.amount.toLocaleString()}
             </p>

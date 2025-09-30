@@ -13,7 +13,7 @@ interface Transaction {
   description: string;
   amount: number;
   category: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'savings';
 }
 
 serve(async (req: Request) => {
@@ -40,7 +40,7 @@ serve(async (req: Request) => {
     const financeKeywords = [
       'spend', 'spent', 'expense', 'income', 'money', 'budget', 'cost', 'paid', 'earn', 'earned',
       'transaction', 'purchase', 'buy', 'bought', 'sale', 'financial', 'finance', 'cash', 'amount',
-      'category', 'food', 'transport', 'shopping', 'bill', 'entertainment', 'health', 'medical'
+      'category', 'food', 'transport', 'shopping', 'bill', 'entertainment', 'health', 'medical', 'savings'
     ];
 
     const isFinanceRelated = financeKeywords.some(keyword => lowerQuestion.includes(keyword));
@@ -65,11 +65,11 @@ serve(async (req: Request) => {
 
     const now = new Date(currentDate || new Date().toISOString());
 
-    // --- Start of New Gemini API Integration ---
+    // --- Start of Groq API Integration ---
 
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!geminiApiKey) {
-      console.error('GEMINI_API_KEY not found in environment');
+    const groqApiKey = Deno.env.get('GROQ_API_KEY');
+    if (!groqApiKey) {
+      console.error('GROQ_API_KEY not found in environment');
       return new Response(
         JSON.stringify({ error: 'API key not configured' }), 
         { 
@@ -79,18 +79,18 @@ serve(async (req: Request) => {
       );
     }
 
-    // Call Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
+    // Call Groq API
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${groqApiKey}`,
       },
       body: JSON.stringify({
-        contents: [
+        messages: [
           {
-            parts: [
-              {
-                text: `You are a helpful and precise financial assistant. Your answers are based *only* on the transaction data provided by the user.
+            role: "system",
+            content: `You are a helpful and precise financial assistant. Your answers are based *only* on the transaction data provided by the user.
 
 **Your Task:**
 1.  **Analyze the User's Question:** Understand what financial information the user is asking for. Pay close attention to dates, date ranges (like "last month" or "in August"), transaction categories, and amounts.
@@ -103,45 +103,30 @@ serve(async (req: Request) => {
 * **Data is Your World:** Do not use any information outside of the provided transaction list. If you cannot answer the question with the given data, say so.
 * **Currency:** All amounts are in Philippine Pesos (₱).
 * **Current Date:** Today's date is ${now.toISOString().split('T')[0]}.
-
-**User's Question:** "${question}"
+* **Categories:**
+    * **Income:** Salary, Freelance, Business, Investment, Gift, Refund, Other Income
+    * **Expense:** Food & Dining, Transportation, Shopping, Bills & Utilities, Entertainment, Health & Medical, Education, Other
+    * **Savings:** Emergency Fund, Retirement, Investment, Goals, Other Savings`
+          },
+          {
+            role: "user",
+            content: `**User's Question:** "${question}"
 
 **Transaction Data (JSON):**
-${JSON.stringify(transactions)}
-`
-              }
-            ]
+${JSON.stringify(transactions)}`
           }
         ],
-        generationConfig: {
-          temperature: 0.5,
-          topK: 1,
-          topP: 1,
-          maxOutputTokens: 300,
-        },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          }
-        ]
+        model: "llama-3.1-8b-instant", // Or any other model you prefer from Groq
+        temperature: 0.5,
+        max_tokens: 300,
+        top_p: 1,
+        stop: null,
+        stream: false
       })
     });
 
     if (!response.ok) {
-      console.error('Gemini API error:', response.status, await response.text());
+      console.error('Groq API error:', response.status, await response.text());
       return new Response(
         JSON.stringify({ error: 'Failed to get AI response' }), 
         { 
@@ -152,10 +137,10 @@ ${JSON.stringify(transactions)}
     }
 
     const data = await response.json();
-    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const answer = data.choices?.[0]?.message?.content;
     
     if (!answer) {
-      console.error('No answer received from Gemini API');
+      console.error('No answer received from Groq API');
       return new Response(
         JSON.stringify({ error: 'No response generated' }), 
         { 

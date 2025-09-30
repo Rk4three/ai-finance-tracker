@@ -33,7 +33,7 @@ interface Transaction {
   amount: number;
   date: string;
   description: string;
-  type: "income" | "expense";
+  type: "income" | "expense" | "savings";
   icon?: React.ComponentType<{ className?: string }>;
 }
 
@@ -104,7 +104,7 @@ const App = () => {
     dateRange: { start: '', end: '' },
     categories: [] as string[],
     amountRange: { min: '', max: '' },
-    type: 'all' as 'all' | 'income' | 'expense'
+    type: 'all' as 'all' | 'income' | 'expense' | 'savings'
   });
 
   // Expanded dummy data
@@ -211,6 +211,7 @@ const App = () => {
     if (categoryLower.includes('shopping') || categoryLower.includes('retail')) return ShoppingCart;
     if (categoryLower.includes('bill') || categoryLower.includes('utilities') || categoryLower.includes('rent')) return Home;
     if (categoryLower.includes('salary') || categoryLower.includes('income') || categoryLower.includes('freelance')) return Coins;
+    if (categoryLower.includes('savings') || categoryLower.includes('investment') || categoryLower.includes('emergency fund') || categoryLower.includes('retirement')) return PiggyBank;
     return Wallet;
   };
 
@@ -259,8 +260,8 @@ const App = () => {
   const dashboardData = useMemo(() => {
     const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
     const totalExpenses = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    const balance = totalIncome - totalExpenses;
-    const savings = Math.max(0, balance * 0.2);
+    const totalSavings = filteredTransactions.filter(t => t.type === 'savings').reduce((sum, t) => sum + t.amount, 0);
+    const balance = totalIncome - totalExpenses - totalSavings;
 
     const expensesByCategory = filteredTransactions
       .filter(t => t.type === 'expense')
@@ -272,7 +273,7 @@ const App = () => {
     const chartData = Object.entries(expensesByCategory).map(([name, value]) => ({ name, value }));
     const chartColors = generateChartColors(chartData.length);
 
-    return { totalIncome, totalExpenses, balance, savings, expensesByCategory, chartData, chartColors };
+    return { totalIncome, totalExpenses, balance, totalSavings, expensesByCategory, chartData, chartColors };
   }, [filteredTransactions]);
 
 
@@ -336,7 +337,7 @@ const App = () => {
           </div>
           <div className="text-right">
             <p className={`font-bold ${
-              transaction.type === 'income' ? 'text-income' : 'text-expense'
+              transaction.type === 'income' ? 'text-income' : transaction.type === 'expense' ? 'text-expense' : 'text-foreground'
             }`}>
               {transaction.type === 'income' ? '+' : '-'}₱{transaction.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
@@ -477,8 +478,8 @@ const App = () => {
             variant="expense"
           />
           <StatCard
-            title="Estimated Savings"
-            value={dashboardData.savings}
+            title="Total Savings"
+            value={dashboardData.totalSavings}
             icon={PiggyBank}
             variant="default"
           />

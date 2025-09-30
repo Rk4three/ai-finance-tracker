@@ -11,7 +11,7 @@ interface FilterOptions {
     min: string;
     max: string;
   };
-  type: 'all' | 'income' | 'expense';
+  type: 'all' | 'income' | 'expense' | 'savings';
 }
 
 interface FilterModalProps {
@@ -24,8 +24,9 @@ interface FilterModalProps {
 const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, currentFilters }) => {
   const [filters, setFilters] = useState<FilterOptions>(currentFilters);
 
-  const incomeCategories = ['Income', 'Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Refund'];
-  const expenseCategories = ['Food & Dining', 'Transportation', 'Shopping', 'Bills & Utilities', 'Entertainment', 'Health & Medical', 'Other'];
+  const incomeCategories = ['Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Refund', 'Other Income'];
+  const expenseCategories = ['Food & Dining', 'Transportation', 'Shopping', 'Bills & Utilities', 'Entertainment', 'Health & Medical', 'Education', 'Other'];
+  const savingsCategories = ['Emergency Fund', 'Retirement', 'Investment', 'Goals', 'Other Savings'];
 
   const categories = useMemo(() => {
     if (filters.type === 'income') {
@@ -34,7 +35,10 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, cur
     if (filters.type === 'expense') {
       return expenseCategories;
     }
-    return [...incomeCategories, ...expenseCategories];
+    if (filters.type === 'savings') {
+      return savingsCategories;
+    }
+    return [...incomeCategories, ...expenseCategories, ...savingsCategories];
   }, [filters.type]);
 
 
@@ -52,6 +56,8 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, cur
       type: 'all'
     };
     setFilters(resetFilters);
+    onApply(resetFilters);
+    onClose();
   };
 
   const toggleCategory = (category: string) => {
@@ -120,7 +126,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onApply, cur
           <div>
             <label className="block text-sm font-medium text-foreground mb-3">Type</label>
             <div className="flex space-x-4">
-              {(['all', 'income', 'expense'] as const).map((type) => (
+              {(['all', 'income', 'expense', 'savings'] as const).map((type) => (
                 <label key={type} className="flex items-center">
                   <input
                     type="radio"
