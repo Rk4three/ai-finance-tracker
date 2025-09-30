@@ -16,6 +16,35 @@ interface Transaction {
   type: 'income' | 'expense' | 'savings';
 }
 
+// --- NEW FUNCTION: Pre-filter transactions ---
+const getRelevantTransactions = (question: string, transactions: Transaction[], currentDate: Date): Transaction[] => {
+  const lowerQuestion = question.toLowerCase();
+  let lookbackDays = 90; // Default lookback window of 90 days
+
+  // Check for keywords and adjust lookback window
+  if (lowerQuestion.includes('last month')) {
+    lookbackDays = 60;
+  } else if (lowerQuestion.includes('this month')) {
+    lookbackDays = 30;
+  } else if (lowerQuestion.includes('last week')) {
+    lookbackDays = 14;
+  } else if (lowerQuestion.includes('this week')) {
+    lookbackDays = 7;
+  } else if (lowerQuestion.includes('yesterday')) {
+    lookbackDays = 2;
+  } else if (lowerQuestion.includes('today')) {
+    lookbackDays = 1;
+  } else if (lowerQuestion.includes('year')) {
+    lookbackDays = 365;
+  }
+
+  const startDate = new Date(currentDate);
+  startDate.setDate(startDate.getDate() - lookbackDays);
+
+  return transactions.filter(t => new Date(t.date) >= startDate);
+};
+// --- END OF NEW FUNCTION ---
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -65,6 +94,9 @@ serve(async (req: Request) => {
 
     const now = new Date(currentDate || new Date().toISOString());
 
+    // --- MODIFIED: Use the new function to filter transactions ---
+    const relevantTransactions = getRelevantTransactions(question, transactions, now);
+
     // --- Start of Groq API Integration ---
 
     const groqApiKey = Deno.env.get('GROQ_API_KEY');
@@ -113,12 +145,12 @@ serve(async (req: Request) => {
             content: `**User's Question:** "${question}"
 
 **Transaction Data (JSON):**
-${JSON.stringify(transactions)}`
+${JSON.stringify(relevantTransactions)}`
           }
         ],
-        model: "groq/compound", // Or any other model you prefer from Groq
+        model: "llama-3.1-8b-instant", // Or any other model you prefer from Groq
         temperature: 0.5,
-        max_tokens: 300,
+        max_tokens: 8192,
         top_p: 1,
         stop: null,
         stream: false
