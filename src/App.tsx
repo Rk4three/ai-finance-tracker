@@ -339,7 +339,7 @@ const App = () => {
             <p className={`font-bold ${
               transaction.type === 'income' ? 'text-income' : transaction.type === 'expense' ? 'text-expense' : 'text-foreground'
             }`}>
-              {transaction.type === 'income' ? '+' : '-'}₱{transaction.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {transaction.type === 'income' ? '+' : transaction.type === 'savings' ? '' : '-'}₱{transaction.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
           </div>
