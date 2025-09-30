@@ -116,7 +116,7 @@ serve(async (req: Request) => {
 ${JSON.stringify(transactions)}`
           }
         ],
-        model: "llama-3.3-70b-versatile", // Or any other model you prefer from Groq
+        model: "groq/compound", // Or any other model you prefer from Groq
         temperature: 0.5,
         max_tokens: 300,
         top_p: 1,
